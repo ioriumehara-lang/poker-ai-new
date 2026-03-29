@@ -3,286 +3,310 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ultimate Poker Hub v4.2</title>
+    <title>Poker Engine v5.1 - Triple Draw Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { touch-action: manipulation; overflow: hidden; background: #0f172a; color: white; font-family: sans-serif; }
-        .bg-poker-green { background: radial-gradient(circle at center, #2d5a27 0%, #162e14 100%); }
-        .bg-poker-blue { background: radial-gradient(circle at center, #1e3a8a 0%, #0f172a 100%); }
-        .card-obj { 
-            background-color: white !important; color: black; border-radius: 6px; 
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3); display: flex; flex-direction: column;
-            align-items: center; justify-content: center; font-weight: bold; transition: all 0.2s;
-            border: 1px solid #ddd;
-        }
-        .selected { transform: translateY(-12px); border: 3px solid #f59e0b !important; box-shadow: 0 0 15px #f59e0b; }
-        .bubble {
-            position: relative; background: white; color: black; border-radius: 10px; 
-            padding: 6px 12px; font-weight: bold; font-size: 11px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 50;
-        }
-        .bubble::after {
-            content: ''; position: absolute; bottom: -6px; left: 50%;
-            transform: translateX(-50%); border-width: 6px 6px 0; border-style: solid; border-color: white transparent transparent;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
+        body { touch-action: manipulation; overflow: hidden; background: #020617; color: white; font-family: 'Inter', sans-serif; }
+        .poker-table { background: radial-gradient(circle at center, #1e40af 0%, #0f172a 100%); border: 8px solid #334155; border-radius: 100px; }
+        .card { width: 58px; height: 82px; background: white; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.2s; border: 1px solid #e2e8f0; }
+        .card.selected { transform: translateY(-15px); box-shadow: 0 0 20px #fbbf24; border: 3px solid #fbbf24; }
+        .ai-thinking { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body class="select-none">
+<body class="select-none h-screen flex items-center justify-center">
 
-    <div id="menu-screen" class="fixed inset-0 z-[100] bg-slate-900 flex flex-col items-center justify-center p-6">
-        <h1 class="text-4xl font-black italic mb-2 text-transparent bg-clip-text bg-gradient-to-r from-yellow-400 to-amber-600">POKER HUB</h1>
-        <p class="text-gray-400 text-[10px] mb-8 tracking-widest uppercase">Choose Your Style</p>
+    <div id="menu" class="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
+        <h1 class="text-5xl font-black italic mb-2 bg-clip-text text-transparent bg-gradient-to-b from-yellow-200 to-yellow-600">POKER ENGINE</h1>
+        <p class="text-slate-500 text-xs tracking-[0.3em] mb-12 uppercase">Triple Draw & Texas Hub</p>
         <div class="grid gap-4 w-full max-w-xs">
-            <button onclick="initGame('texas')" class="bg-gradient-to-br from-green-700 to-emerald-900 p-6 rounded-2xl border border-green-400/30 active:scale-95 shadow-xl">
-                <span class="block text-xl font-black">Texas Hold'em</span>
-                <span class="text-[9px] opacity-70">共通ボード + 1枚交換</span>
+            <button onclick="startGame('texas')" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 hover:border-blue-500 transition-all">
+                <span class="block text-xl font-bold text-blue-400">Texas Hold'em</span>
+                <span class="text-[10px] text-slate-500 text-center">共通ボード + 1枚交換</span>
             </button>
-            <button onclick="initGame('draw')" class="bg-gradient-to-br from-blue-700 to-indigo-900 p-6 rounded-2xl border border-blue-400/30 active:scale-95 shadow-xl">
-                <span class="block text-xl font-black">5-Card Draw</span>
-                <span class="text-[9px] opacity-70">手札5枚 + 全交換可能</span>
+            <button onclick="startGame('draw')" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 hover:border-indigo-500 transition-all">
+                <span class="block text-xl font-bold text-indigo-400">5-Card Triple Draw</span>
+                <span class="text-[10px] text-slate-500">手札5枚 + 最大3回交換可能</span>
             </button>
         </div>
-        <div class="mt-12 text-gray-500 font-mono text-xs italic">TOTAL CHIPS: <span id="wallet-display" class="text-white font-bold">1000</span></div>
     </div>
 
-    <div id="game-screen" class="hidden flex flex-col h-[100dvh] w-full max-w-md mx-auto overflow-hidden">
-        <div class="p-2 bg-slate-950 flex justify-between items-center border-b border-white/10 shrink-0">
-            <button onclick="exitToMenu()" class="text-[10px] font-black text-gray-400 border border-gray-700 px-3 py-1 rounded uppercase">Menu</button>
-            <span id="mode-title" class="text-xs font-black text-amber-500 italic">---</span>
-            <span id="phase-display" class="text-[9px] text-gray-500 font-bold uppercase tracking-tighter">---</span>
+    <div id="game" class="hidden relative w-full h-full max-w-md flex flex-col p-4">
+        <div class="flex justify-between items-center mb-4">
+            <button onclick="location.reload()" class="text-[10px] font-bold bg-slate-800 px-3 py-1 rounded border border-slate-700">EXIT</button>
+            <div id="status-label" class="text-[10px] font-black text-yellow-500 tracking-widest uppercase">Waiting...</div>
+            <div class="text-right"><div id="wallet" class="text-sm font-black">$1000</div></div>
         </div>
 
-        <div id="table" class="relative flex-1 flex flex-col justify-between p-2">
+        <div class="poker-table flex-1 relative flex flex-col justify-between py-8 px-4 border-slate-800">
             <div class="flex flex-col items-center">
-                <div class="h-10 flex items-end mb-1">
-                    <div id="ai-bubble" class="bubble hidden">...</div>
-                </div>
-                <div class="bg-black/30 rounded-xl p-2 w-full border border-white/5">
-                    <div class="flex justify-between px-2 mb-1 text-[9px] text-gray-400 font-mono uppercase">
-                        <span>Opponent</span>
-                        <span>Stack: <b id="ai-stack" class="text-white">---</b></span>
-                    </div>
-                    <div id="ai-hand" class="flex gap-1 h-20 justify-center"></div>
-                </div>
+                <div id="ai-msg" class="absolute top-20 bg-white text-slate-900 px-3 py-1 rounded-full text-[10px] font-bold shadow-xl hidden">...</div>
+                <div class="flex gap-1 mb-2" id="ai-hand"></div>
+                <div class="text-[10px] font-bold text-slate-400">AI Stack: <span id="ai-stack" class="text-white">$1000</span></div>
             </div>
 
             <div class="flex flex-col items-center">
-                <div id="board" class="flex justify-center gap-1 h-20 w-full"></div>
-                <div class="mt-4 bg-black/60 px-5 py-1.5 rounded-full border border-yellow-500/20 shadow-inner">
-                    <span class="text-[9px] text-yellow-600 font-black uppercase mr-2 tracking-widest">Pot</span>
-                    <span class="text-lg font-black text-white" id="pot-amount">0</span>
+                <div id="board" class="flex gap-1 h-20 mb-4"></div>
+                <div class="bg-black/40 px-6 py-2 rounded-full border border-white/5 flex flex-col items-center">
+                    <span id="pot" class="text-2xl font-black italic">$0</span>
+                    <span id="draw-count-display" class="text-[9px] text-yellow-500 font-bold uppercase hidden"></span>
                 </div>
             </div>
 
-            <div class="flex flex-col items-center mb-2">
-                <div id="game-guide" class="text-[10px] text-purple-400 font-bold h-4 mb-1 italic"></div>
-                <div id="current-hand-name" class="text-xs font-black text-yellow-500 uppercase mb-2 tracking-widest">---</div>
-                <div id="player-hand" class="flex gap-1 h-24 mb-4 justify-center"></div>
-                
-                <div class="flex justify-between w-full px-4 mb-2 text-[10px] text-gray-400 font-black italic uppercase">
-                    <span>You</span>
-                    <span>Stack: <b id="player-stack" class="text-white">---</b></span>
-                </div>
-
-                <div id="controls" class="grid grid-cols-3 gap-2 w-full px-1">
-                    <button id="btn-draw" onclick="confirmDraw()" class="hidden col-span-3 bg-amber-600 py-4 rounded-xl font-black text-xs uppercase text-gray-950 mb-1 shadow-lg active:scale-95">交換を実行する</button>
-                    <button id="btn-fold" onclick="handleAction('fold')" class="bg-slate-800 py-4 rounded-xl font-black text-[10px] uppercase shadow-md">Fold</button>
-                    <button id="btn-call" onclick="handleAction('call')" class="bg-amber-600 py-4 rounded-xl font-black text-[10px] text-slate-900 uppercase shadow-md">Call</button>
-                    <button id="btn-raise" onclick="handleAction('raise')" class="bg-blue-700 py-4 rounded-xl font-black text-[10px] uppercase shadow-md">Raise</button>
-                </div>
-                <div id="next-btn-area" class="hidden w-full px-1">
-                    <button onclick="startRound()" class="w-full bg-white text-slate-900 py-5 rounded-xl font-black text-sm uppercase tracking-widest shadow-2xl">Start Next Hand</button>
-                </div>
+            <div class="flex flex-col items-center">
+                <div id="hand-name" class="text-[10px] font-black text-blue-400 uppercase mb-2 tracking-[0.2em]">--</div>
+                <div class="flex gap-1 mb-4 h-24" id="player-hand"></div>
+                <div id="guide-text" class="text-[9px] text-slate-500 mb-2 h-3 italic uppercase"></div>
             </div>
         </div>
-        <div id="log" class="h-8 bg-black/80 text-[8px] p-2 font-mono text-gray-500 overflow-y-auto border-t border-white/5 shrink-0"></div>
+
+        <div id="controls" class="mt-4 grid grid-cols-3 gap-2">
+            <button onclick="action('fold')" class="bg-slate-900 border border-slate-800 py-4 rounded-xl text-xs font-bold uppercase">Fold</button>
+            <button id="call-btn" onclick="action('call')" class="bg-blue-600 py-4 rounded-xl text-xs font-black uppercase">Call</button>
+            <button id="raise-btn" onclick="action('raise')" class="bg-slate-100 text-slate-900 py-4 rounded-xl text-xs font-black uppercase">Raise</button>
+        </div>
+
+        <div id="next-action" class="hidden mt-4">
+            <button onclick="nextRound()" class="w-full bg-gradient-to-r from-yellow-500 to-amber-600 py-5 rounded-2xl text-slate-900 font-black tracking-widest uppercase shadow-xl">Next Hand</button>
+        </div>
     </div>
 
-    <div id="result-banner" class="hidden fixed top-0 left-0 w-full z-50 py-8 flex flex-col items-center justify-center bg-slate-900/95 border-b-2 border-yellow-500 shadow-2xl">
-        <span id="result-text" class="text-3xl font-black italic uppercase tracking-tighter">---</span>
-        <span id="result-detail" class="text-xs text-yellow-500 font-bold uppercase mt-1 tracking-widest">---</span>
+    <div id="overlay" class="hidden fixed inset-0 z-[60] bg-slate-950/90 flex flex-col items-center justify-center">
+        <h2 id="win-text" class="text-6xl font-black italic mb-2 tracking-tighter">YOU WIN</h2>
+        <p id="win-detail" class="text-yellow-500 font-bold tracking-widest uppercase text-sm"></p>
     </div>
 
     <script>
-        let wallet = 1000, aiBank = 1000, gameMode = 'texas', state = {};
-        const valMap = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
-        const aiTalks = {
-            strong: ["この勝負、乗ったよ。", "いい手だね。", "勝てるかな？"],
-            swap: ["何を引くかな...", "勝負はここからだよ。", "運を味方につける。"],
-            fold: ["今回は引いておこう。", "賢明な判断だね。", "君の勝ちだよ。"],
-            normal: ["コールだ。", "様子を見ようか。", "まだ分からないよ。"]
-        };
+        let money = 1000, aiMoney = 1000, pot = 0;
+        let mode = 'texas', deck = [], state = {};
+        const VALS = {'2':2,'3':3,'4':4,'5':5,'6':6,'7':7,'8':8,'9':9,'10':10,'J':11,'Q':12,'K':13,'A':14};
+        const SUITS = ['♠', '♥', '♦', '♣'];
 
-        function showMenu() {
-            document.getElementById('menu-screen').classList.remove('hidden');
-            document.getElementById('game-screen').classList.add('hidden');
-            document.getElementById('wallet-display').innerText = wallet;
+        function startGame(m) {
+            mode = m;
+            document.getElementById('menu').style.display = 'none';
+            document.getElementById('game').classList.remove('hidden');
+            nextRound();
         }
 
-        function exitToMenu() { if(confirm("メニューに戻りますか？現在のハンドは終了します。")) showMenu(); }
+        function nextRound() {
+            pot = 40; money -= 20; aiMoney -= 20;
+            deck = [];
+            for(let s of SUITS) for(let v in VALS) deck.push({s, v});
+            deck.sort(() => Math.random() - 0.5);
 
-        function initGame(mode) {
-            gameMode = mode;
-            document.getElementById('menu-screen').classList.add('hidden');
-            document.getElementById('game-screen').classList.remove('hidden');
-            document.getElementById('mode-title').innerText = mode === 'texas' ? "TEXAS HOLD'EM" : "5-CARD DRAW";
-            document.getElementById('table').className = 'relative flex-1 flex flex-col justify-between p-2 ' + (mode === 'texas' ? 'bg-poker-green' : 'bg-poker-blue');
-            startRound();
-        }
+            state = {
+                pHand: [], aiHand: [], board: [],
+                phase: mode === 'draw' ? 'draw' : 'preflop',
+                drawCount: 0, // 交換回数
+                pSwapped: false, selected: new Set(),
+                aiBluff: Math.random() > 0.9
+            };
 
-        function startRound() {
-            state = { pot: 0, playerHand: [], aiHand: [], board: [], deck: [], phase: 'start', exchanged: false, selected: new Set(), isThinking: false };
-            const suits = ['♠', '♥', '♦', '♣'], vals = ['2','3','4','5','6','7','8','9','10','J','Q','K','A'];
-            for(let s of suits) for(let v of vals) state.deck.push({s, v});
-            state.deck.sort(() => Math.random() - 0.5);
+            const count = (mode === 'texas') ? 2 : 5;
+            for(let i=0; i<count; i++) { state.pHand.push(deck.pop()); state.aiHand.push(deck.pop()); }
+            if(mode === 'texas') for(let i=0; i<5; i++) state.board.push(deck.pop());
 
-            const size = (gameMode === 'texas') ? 2 : 5;
-            for(let i=0; i<size; i++) { state.playerHand.push(state.deck.pop()); state.aiHand.push(state.deck.pop()); }
-            if(gameMode === 'texas') for(let i=0; i<5; i++) state.board.push(state.deck.pop());
-
-            wallet -= 20; aiBank -= 20; state.pot = 40;
-            state.phase = (gameMode === 'texas') ? 'pre-flop' : 'drawing';
-            
-            document.getElementById('next-btn-area').classList.add('hidden');
+            document.getElementById('overlay').classList.add('hidden');
+            document.getElementById('next-action').classList.add('hidden');
             document.getElementById('controls').classList.remove('hidden');
-            document.getElementById('result-banner').classList.add('hidden');
-            document.getElementById('ai-bubble').classList.add('hidden');
             updateUI();
-            log("New Round Started.");
-        }
-
-        function aiSpeak(type) {
-            const b = document.getElementById('ai-bubble');
-            const lines = aiTalks[type];
-            b.innerText = lines[Math.floor(Math.random()*lines.length)];
-            b.classList.remove('hidden');
         }
 
         function updateUI() {
-            document.getElementById('player-stack').innerText = wallet;
-            document.getElementById('ai-stack').innerText = aiBank;
-            document.getElementById('pot-amount').innerText = state.pot;
-            document.getElementById('phase-display').innerText = state.phase;
+            document.getElementById('wallet').innerText = `$${money}`;
+            document.getElementById('ai-stack').innerText = `$${aiMoney}`;
+            document.getElementById('pot').innerText = `$${pot}`;
+            document.getElementById('status-label').innerText = state.phase;
 
-            let visNum = 0;
-            if(gameMode === 'texas') {
-                visNum = state.phase==='flop'?3 : (state.phase==='turn'?4 : (state.phase==='river'||state.phase==='showdown'?5 : 0));
-                const bDiv = document.getElementById('board');
-                bDiv.innerHTML = "";
-                for(let i=0; i<5; i++) {
-                    bDiv.innerHTML += (i < visNum) ? renderCard(state.board[i], "w-14") : `<div class="w-14 h-20 bg-black/20 rounded border border-white/10 flex items-center justify-center text-white/5 font-bold italic text-xl">?</div>`;
-                }
-            } else { document.getElementById('board').innerHTML = ""; }
+            const drawLabel = document.getElementById('draw-count-display');
+            if(mode === 'draw') {
+                drawLabel.innerText = `Draw Left: ${3 - state.drawCount}`;
+                drawLabel.classList.remove('hidden');
+            } else { drawLabel.classList.add('hidden'); }
 
-            document.getElementById('ai-hand').innerHTML = state.aiHand.map(c => 
-                state.phase === 'showdown' ? renderCard(c, "w-14") : `<div class="w-14 h-20 bg-slate-900 rounded border border-blue-900/30 flex items-center justify-center text-blue-900 text-xl font-black italic">?</div>`
-            ).join('');
+            document.getElementById('ai-hand').innerHTML = state.aiHand.map(c => state.phase === 'showdown' ? renderCard(c) : `<div class="w-[58px] h-[82px] bg-slate-800 rounded border border-slate-700 flex items-center justify-center text-slate-600 font-black italic">?</div>`).join('');
 
-            const pHandDiv = document.getElementById('player-hand');
-            pHandDiv.innerHTML = "";
-            state.playerHand.forEach((c, i) => {
-                const canSwap = (gameMode==='texas' && !state.exchanged) || (gameMode==='draw' && state.phase==='drawing');
-                const isSel = state.selected.has(i);
+            const bArea = document.getElementById('board');
+            bArea.innerHTML = '';
+            if(mode === 'texas') {
+                let show = state.phase==='flop'?3 : (state.phase==='turn'?4 : (state.phase==='river'||state.phase==='showdown'?5 : 0));
+                for(let i=0; i<5; i++) bArea.innerHTML += (i < show) ? renderCard(state.board[i]) : `<div class="w-[58px] h-[82px] bg-black/20 border border-white/5 rounded"></div>`;
+            }
+
+            const pArea = document.getElementById('player-hand');
+            pArea.innerHTML = '';
+            state.pHand.forEach((c, i) => {
                 const el = document.createElement('div');
-                el.innerHTML = renderCard(c, "w-16", isSel && canSwap);
+                el.innerHTML = renderCard(c, state.selected.has(i));
                 const card = el.firstChild;
-                if(canSwap) card.onclick = () => {
-                    if(gameMode==='texas') { state.playerHand[i] = state.deck.pop(); state.exchanged = true; updateUI(); }
-                    else { if(state.selected.has(i)) state.selected.delete(i); else state.selected.add(i); updateUI(); }
+                card.onclick = () => {
+                    if(mode === 'draw' && state.phase === 'draw') {
+                        state.selected.has(i) ? state.selected.delete(i) : state.selected.add(i);
+                        updateUI();
+                    } else if(mode === 'texas' && !state.pSwapped) {
+                        state.pHand[i] = deck.pop(); state.pSwapped = true; updateUI();
+                    }
                 };
-                pHandDiv.appendChild(card);
+                pArea.appendChild(card);
             });
 
-            const currentBoard = (gameMode==='texas') ? state.board.slice(0, visNum) : [];
-            const res = evaluateHand(state.playerHand, currentBoard);
-            document.getElementById('current-hand-name').innerText = res.n;
-            document.getElementById('game-guide').innerText = (gameMode==='texas' && !state.exchanged) ? "Tap a card to swap once" : (gameMode==='draw' && state.phase==='drawing' ? "Select cards to discard" : "");
-            document.getElementById('btn-draw').className = (gameMode==='draw' && state.phase==='drawing') ? "col-span-3 bg-amber-600 py-4 rounded-xl font-black text-xs uppercase mb-1 shadow-lg" : "hidden";
+            const evalP = evaluate(state.pHand, (mode==='texas' ? getVisBoard() : []));
+            document.getElementById('hand-name').innerText = evalP.name;
+            
+            if(mode === 'draw' && state.phase === 'draw') {
+                document.getElementById('call-btn').innerText = state.selected.size > 0 ? "Swap Cards" : "Stay (No Swap)";
+                document.getElementById('guide-text').innerText = "Select cards to discard & tap Swap";
+            } else {
+                document.getElementById('call-btn').innerText = "Call";
+                document.getElementById('guide-text').innerText = "";
+            }
         }
 
-        function confirmDraw() {
-            state.selected.forEach(i => state.playerHand[i] = state.deck.pop());
-            state.selected.clear();
-            state.phase = 'final-bet';
-            aiSpeak('swap');
-            updateUI();
-        }
-
-        function handleAction(act) {
-            if(state.isThinking) return;
-            if(act==='fold') { endRound('AI'); return; }
-            if(act==='raise') { wallet-=100; aiBank-=100; state.pot+=200; }
-
-            state.isThinking = true;
-            setTimeout(() => {
-                const aiHand = evaluateHand(state.aiHand, gameMode==='texas' ? state.board : []);
-                if(aiHand.s >= 2) aiSpeak('strong'); else aiSpeak('normal');
-
-                setTimeout(() => {
-                    state.isThinking = false;
-                    if(gameMode==='draw') determineWinner();
-                    else {
-                        if(state.phase==='pre-flop') state.phase='flop';
-                        else if(state.phase==='flop') state.phase='turn';
-                        else if(state.phase==='turn') state.phase='river';
-                        else { determineWinner(); return; }
-                        updateUI();
-                    }
-                }, 800);
-            }, 400);
-        }
-
-        function determineWinner() {
-            state.phase = 'showdown'; updateUI();
-            const p = evaluateHand(state.playerHand, gameMode==='texas' ? state.board : []);
-            const a = evaluateHand(state.aiHand, gameMode==='texas' ? state.board : []);
-            const b = document.getElementById('result-banner'); b.classList.remove('hidden');
-            if(p.s > a.s) { document.getElementById('result-text').innerText = "YOU WIN!"; endRound('Player'); }
-            else if(a.s > p.s) { document.getElementById('result-text').innerText = "AI WIN"; endRound('AI'); }
-            else { document.getElementById('result-text').innerText = "DRAW"; endRound('Draw'); }
-            document.getElementById('result-detail').innerText = `${p.n} VS ${a.n}`;
-        }
-
-        function endRound(win) {
-            if(win==='Player') wallet+=state.pot; else if(win==='AI') aiBank+=state.pot; else {wallet+=state.pot/2; aiBank+=state.pot/2;}
-            state.pot = 0;
-            document.getElementById('controls').classList.add('hidden');
-            document.getElementById('btn-draw').classList.add('hidden');
-            document.getElementById('next-btn-area').classList.remove('hidden');
-        }
-
-        function evaluateHand(hand, board) {
-            const cards = [...hand, ...board].map(c => ({v: valMap[c.v], s: c.s})).sort((a,b)=>a.v-b.v);
-            const cts = {}; cards.forEach(c => cts[c.v] = (cts[c.v] || 0) + 1);
-            const sts = {}; cards.forEach(c => sts[c.s] = (sts[c.s] || 0) + 1);
-            const isFlush = Object.values(sts).some(v => v >= 5);
-            const uVals = [...new Set(cards.map(c => c.v))];
-            if(uVals.includes(14)) uVals.unshift(1);
-            let sH = -1;
-            for(let i=0; i<=uVals.length-5; i++) if(uVals[i+4]-uVals[i]===4) sH = uVals[i+4];
-            const p = Object.values(cts).filter(v=>v===2).length, t = Object.values(cts).filter(v=>v===3).length, q = Object.values(cts).filter(v=>v===4).length;
-            if(isFlush && sH===14) return {s:9, n:"Royal Flush"};
-            if(isFlush && sH!==-1) return {s:8, n:"Straight Flush"};
-            if(q) return {s:7, n:"4 Card"};
-            if(t && p) return {s:6, n:"Full House"};
-            if(isFlush) return {s:5, n:"Flush"};
-            if(sH!==-1) return {s:4, n:"Straight"};
-            if(t) return {s:3, n:"3 Card"};
-            if(p>=2) return {s:2, n:"2 Pair"};
-            if(p===1) return {s:1, n:"1 Pair"};
-            return {s:0, n:"High Card"};
-        }
-
-        function renderCard(c, width, sel = false) {
+        function renderCard(c, sel) {
             const isRed = (c.s === '♥' || c.s === '♦');
-            return `<div class="${width} h-full card-obj ${sel?'selected':''} relative" style="color:${isRed?'#ef4444':'#111827'}">
-                <div class="text-[10px] leading-none mb-1">${c.v}</div>
-                <div class="text-3xl">${c.s}</div>
+            return `<div class="card ${sel?'selected':''}" style="color:${isRed?'#e11d48':'#0f172a'}">
+                <div class="text-[11px] leading-none mb-1">${c.v}</div>
+                <div class="text-2xl">${c.s}</div>
             </div>`;
         }
 
-        function log(m) { const l = document.getElementById('log'); l.innerHTML = `> ${m}<br>` + l.innerHTML; }
+        function getVisBoard() {
+            let n = state.phase==='flop'?3 : (state.phase==='turn'?4 : (state.phase==='river'||state.phase==='showdown'?5 : 0));
+            return state.board.slice(0, n);
+        }
 
-        showMenu();
+        function action(type) {
+            if(type === 'fold') return endGame('AI Win', 'You Folded');
+
+            if(mode === 'draw' && state.phase === 'draw') {
+                // プレイヤーの交換
+                state.selected.forEach(i => state.pHand[i] = deck.pop());
+                state.selected.clear();
+                
+                // AIの交換思考
+                aiThinkTripleDraw();
+                
+                state.drawCount++;
+                if(state.drawCount >= 3) {
+                    state.phase = 'final-bet';
+                }
+                updateUI();
+                return;
+            }
+
+            // ベット処理
+            let pBet = (type === 'raise') ? 100 : 20;
+            money -= pBet; pot += pBet;
+            updateUI();
+
+            document.getElementById('controls').classList.add('ai-thinking');
+            setTimeout(() => {
+                const aiEval = evaluate(state.aiHand, (mode==='texas' ? getVisBoard() : []));
+                let decision = 'call';
+                let strength = aiEval.score + (state.aiBluff ? 300 : 0);
+
+                if(type === 'raise' && strength < 150) decision = 'fold';
+                else if(strength > 500) decision = 'raise';
+
+                if(decision === 'fold') return endGame('Player Win', 'AI Folded');
+                
+                let aiBet = (decision === 'raise') ? 100 : pBet;
+                aiMoney -= aiBet; pot += aiBet;
+                
+                if(decision === 'raise') speakAI("強気に行くよ、レイズ！");
+                else speakAI("コール。");
+
+                document.getElementById('controls').classList.remove('ai-thinking');
+                
+                if(mode === 'texas') {
+                    if(state.phase === 'preflop') state.phase = 'flop';
+                    else if(state.phase === 'flop') state.phase = 'turn';
+                    else if(state.phase === 'turn') state.phase = 'river';
+                    else return showdown();
+                } else {
+                    return showdown();
+                }
+                updateUI();
+            }, 600);
+        }
+
+        // --- Triple Draw AI ---
+        function aiThinkTripleDraw() {
+            const counts = {};
+            state.aiHand.forEach(c => counts[c.v] = (counts[c.v] || 0) + 1);
+            
+            // 3回交換がある前提の戦略
+            let swapCount = 0;
+            state.aiHand = state.aiHand.map(c => {
+                // ペア以上のカード、または役の可能性が高いカード（高い数字）以外は交換
+                if (counts[c.v] > 1) return c; // ペアはキープ
+                if (VALS[c.v] >= 12 && state.drawCount < 2) return c; // Q以上は2回目まではキープしてみる
+                
+                swapCount++;
+                return deck.pop();
+            });
+
+            if(swapCount > 0) speakAI(`${swapCount}枚交換したよ。`);
+            else speakAI("交換なしだ。");
+        }
+
+        function showdown() {
+            state.phase = 'showdown';
+            updateUI();
+            const p = evaluate(state.pHand, (mode==='texas' ? state.board : []));
+            const a = evaluate(state.aiHand, (mode==='texas' ? state.board : []));
+            setTimeout(() => {
+                if(p.score > a.score) endGame('Player Win', `${p.name} vs ${a.name}`);
+                else if(a.score > p.score) endGame('AI Win', `${p.name} vs ${a.name}`);
+                else endGame('Draw', 'Split Pot');
+            }, 1000);
+        }
+
+        function evaluate(hand, board) {
+            const all = [...hand, ...board].map(c => ({v: VALS[c.v], s: c.s})).sort((a,b)=>b.v-a.v);
+            const vCounts = {}; all.forEach(c => vCounts[c.v] = (vCounts[c.v] || 0) + 1);
+            const sCounts = {}; all.forEach(c => sCounts[c.s] = (sCounts[c.s] || 0) + 1);
+            const isFlush = Object.values(sCounts).some(v => v >= 5);
+            const uVals = [...new Set(all.map(c=>c.v))];
+            let straightHigh = 0;
+            for(let i=0; i<=uVals.length-5; i++) if(uVals[i] - uVals[i+4] === 4) { straightHigh = uVals[i]; break; }
+            if(!straightHigh && [14,5,4,3,2].every(v => uVals.includes(v))) straightHigh = 5;
+
+            const pairs = Object.entries(vCounts).filter(e => e[1]===2).map(e=>Number(e[0]));
+            const trips = Object.entries(vCounts).filter(e => e[1]===3).map(e=>Number(e[0]));
+            const quads = Object.entries(vCounts).filter(e => e[1]===4).map(e=>Number(e[0]));
+
+            if(isFlush && straightHigh === 14) return {score: 900, name: "Royal Flush"};
+            if(isFlush && straightHigh) return {score: 800, name: "Straight Flush"};
+            if(quads.length) return {score: 700, name: "4 Card"};
+            if(trips.length && pairs.length) return {score: 600, name: "Full House"};
+            if(isFlush) return {score: 500, name: "Flush"};
+            if(straightHigh) return {score: 400, name: "Straight"};
+            if(trips.length) return {score: 300, name: "3 Card"};
+            if(pairs.length >= 2) return {score: 200, name: "2 Pair"};
+            if(pairs.length === 1) return {score: 100 + pairs[0], name: "1 Pair"};
+            return {score: all[0].v, name: "High Card"};
+        }
+
+        function endGame(winner, detail) {
+            const o = document.getElementById('overlay');
+            const t = document.getElementById('win-text');
+            const d = document.getElementById('win-detail');
+            if(winner === 'Player Win') { money += pot; t.innerText = "YOU WIN"; t.style.color = "#3b82f6"; }
+            else if(winner === 'AI Win') { aiMoney += pot; t.innerText = "AI WIN"; t.style.color = "#ef4444"; }
+            else { money += pot/2; aiMoney += pot/2; t.innerText = "DRAW"; t.style.color = "#94a3b8"; }
+            pot = 0; d.innerText = detail; o.classList.remove('hidden');
+            document.getElementById('controls').classList.add('hidden');
+            document.getElementById('next-action').classList.remove('hidden');
+        }
+
+        function speakAI(msg) {
+            const b = document.getElementById('ai-msg');
+            b.innerText = msg; b.classList.remove('hidden');
+            setTimeout(() => b.classList.add('hidden'), 2000);
+        }
     </script>
 </body>
 </html>
