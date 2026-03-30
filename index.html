@@ -3,93 +3,88 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Poker Engine v5.4 - Layout Updated</title>
+    <title>Poker Engine v5.5 - Balanced Edition</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;900&display=swap');
         body { touch-action: manipulation; overflow: hidden; background: #020617; color: white; font-family: 'Inter', sans-serif; }
-        .poker-table { background: radial-gradient(circle at center, #1e40af 0%, #0f172a 100%); border: 8px solid #334155; border-radius: 100px; }
-        .card { width: 54px; height: 78px; background: white; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: all 0.2s; border: 1px solid #e2e8f0; cursor: pointer; }
+        .poker-table { background: radial-gradient(circle at center, #1e40af 0%, #0f172a 100%); border: 8px solid #334155; border-radius: 80px; }
+        .card { width: 50px; height: 72px; background: white; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-weight: 900; box-shadow: 0 4px 8px rgba(0,0,0,0.5); transition: all 0.2s; border: 1px solid #e2e8f0; cursor: pointer; }
         .card.selected { transform: translateY(-12px); box-shadow: 0 0 15px #fbbf24; border: 3px solid #fbbf24; }
-        .rank-item { display: flex; justify-content: space-between; padding: 6px 12px; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 12px; transition: all 0.3s; }
-        .rank-active { background: #fbbf24 !important; color: #000 !important; font-weight: 900; transform: scale(1.05); border-radius: 4px; box-shadow: 0 0 15px #fbbf24; }
-        .ai-thinking { animation: pulse 1s infinite; pointer-events: none; opacity: 0.7; }
-        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(0.98); } }
+        /* 役ランク表のスタイル */
+        .rank-table { font-size: 10px; background: rgba(0,0,0,0.6); border-radius: 8px; padding: 5px; border: 1px solid rgba(255,255,255,0.1); }
+        .rank-item { display: flex; justify-content: space-between; padding: 2px 5px; border-radius: 3px; transition: 0.3s; color: #94a3b8; }
+        .rank-active { background: #fbbf24 !important; color: #000 !important; font-weight: 900; box-shadow: 0 0 10px #fbbf24; }
+        .ai-thinking { animation: pulse 1s infinite; pointer-events: none; }
+        @keyframes pulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(0.98); opacity: 0.7; } }
     </style>
 </head>
-<body class="select-none h-screen flex items-center justify-center">
+<body class="select-none h-screen flex items-center justify-center p-2">
 
     <div id="menu" class="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-8 text-center">
-        <h1 class="text-5xl font-black italic mb-2 bg-clip-text text-transparent bg-gradient-to-b from-yellow-200 to-yellow-600">POKER ENGINE</h1>
-        <div class="grid gap-4 w-full max-w-xs mt-10">
-            <button onclick="startGame('texas')" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 font-bold text-blue-400">Texas Hold'em</button>
-            <button onclick="startGame('draw')" class="bg-slate-800 p-5 rounded-2xl border border-slate-700 font-bold text-indigo-400">5-Card Triple Draw</button>
+        <h1 class="text-4xl font-black italic mb-10 bg-clip-text text-transparent bg-gradient-to-b from-yellow-200 to-yellow-600">POKER ENGINE</h1>
+        <div class="grid gap-4 w-full max-w-xs">
+            <button onclick="startGame('texas')" class="bg-blue-900/50 p-6 rounded-2xl border border-blue-500 font-bold text-blue-400">Texas Hold'em</button>
+            <button onclick="startGame('draw')" class="bg-indigo-900/50 p-6 rounded-2xl border border-indigo-500 font-bold text-indigo-400">5-Card Triple Draw</button>
         </div>
     </div>
 
-    <div id="game" class="hidden relative w-full h-[100dvh] max-w-md flex flex-col p-4 overflow-hidden">
+    <div id="game" class="hidden relative w-full h-full max-w-md flex flex-col overflow-hidden">
         
-        <div class="flex justify-between items-center mb-2">
-            <button onclick="location.reload()" class="bg-slate-800 px-3 py-1 rounded text-[10px] font-bold border border-slate-700">EXIT</button>
-            <div id="status-label" class="text-[10px] font-black text-slate-500 italic uppercase">Waiting</div>
-            <button onclick="toggleRankTable()" class="bg-yellow-600 px-3 py-1 rounded text-[10px] font-black text-white shadow-lg shadow-yellow-900/20">RANK LIST</button>
-        </div>
-
-        <div id="main-table" class="poker-table flex-1 relative flex flex-col justify-between py-6 px-4 border-slate-800 transition-all">
-            
-            <div class="flex flex-col items-center">
-                <div id="ai-msg" class="absolute top-16 bg-white text-slate-900 px-3 py-1 rounded-full text-[10px] font-black shadow-2xl z-50 hidden">...</div>
+        <div class="flex gap-2 mb-2 h-32">
+            <div class="flex-1 bg-slate-900/50 rounded-xl border border-white/5 p-2 flex flex-col items-center justify-center relative">
+                <div id="ai-msg" class="absolute -bottom-2 bg-white text-black px-2 py-0.5 rounded-full text-[9px] font-black z-50 hidden">...</div>
                 <div class="flex gap-1 mb-1" id="ai-hand"></div>
-                <div class="text-[10px] font-bold text-slate-400 uppercase italic">AI Bank: <span id="ai-stack-display" class="text-white">---</span></div>
+                <div class="text-[9px] font-bold text-slate-500 uppercase italic">AI Bank: <span id="ai-stack-display" class="text-white">---</span></div>
             </div>
+            <div class="w-32 rank-table flex flex-col justify-center">
+                <div id="rank-9" class="rank-item"><span>Royal</span><span>👑</span></div>
+                <div id="rank-8" class="rank-item"><span>St-Flush</span><span>🔥</span></div>
+                <div id="rank-7" class="rank-item"><span>4-Kind</span><span>⚡</span></div>
+                <div id="rank-6" class="rank-item"><span>FullHouse</span><span>💎</span></div>
+                <div id="rank-5" class="rank-item"><span>Flush</span><span>🌊</span></div>
+                <div id="rank-4" class="rank-item"><span>Straight</span><span>🛤️</span></div>
+                <div id="rank-3" class="rank-item"><span>3-Kind</span><span>✨</span></div>
+                <div id="rank-2" class="rank-item"><span>2-Pair</span><span>✌️</span></div>
+                <div id="rank-1" class="rank-item"><span>1-Pair</span><span>🃏</span></div>
+                <div id="rank-0" class="rank-item"><span>HighCard</span><span>💨</span></div>
+            </div>
+        </div>
 
-            <div class="flex flex-col items-center">
-                <div id="board" class="flex gap-1 h-16 mb-2"></div>
-                <div class="bg-black/40 px-6 py-2 rounded-2xl border border-white/10 flex flex-col items-center min-w-[120px]">
+        <div id="main-table" class="poker-table flex-1 relative flex flex-col justify-between py-4 px-4 border-slate-800">
+            <div class="flex flex-col items-center justify-center h-full">
+                <div id="board" class="flex gap-1 mb-4 h-16"></div>
+                <div class="bg-black/40 px-6 py-2 rounded-2xl border border-white/10 text-center">
+                    <div id="status-label" class="text-[8px] text-slate-500 font-black uppercase mb-1">Waiting</div>
                     <span id="pot-display" class="text-3xl font-black italic text-yellow-500 tracking-tighter">$0</span>
-                    <span id="draw-count-display" class="text-[9px] text-slate-400 font-bold uppercase mt-1"></span>
-                </div>
-            </div>
-
-            <div class="flex flex-col items-center">
-                <div id="hand-name" class="text-[11px] font-black text-blue-400 uppercase mb-2 tracking-widest">--</div>
-                <div class="flex gap-1 h-20 mb-3" id="player-hand"></div>
-                <div class="flex flex-col items-center gap-1">
-                    <div class="text-[10px] text-slate-500 font-bold uppercase">Your Wallet</div>
-                    <div id="wallet-display" class="text-2xl font-black text-white italic tracking-tight">$1000</div>
+                    <div id="draw-count-display" class="text-[9px] text-yellow-500 font-bold mt-1"></div>
                 </div>
             </div>
         </div>
 
-        <div id="controls" class="mt-4 grid grid-cols-3 gap-2">
+        <div class="mt-2 flex flex-col items-center">
+            <div id="hand-name" class="text-[11px] font-black text-blue-400 uppercase mb-1 tracking-widest">--</div>
+            <div class="flex gap-1 h-20 mb-2" id="player-hand"></div>
+            
+            <div class="flex justify-between items-end w-full px-2 mb-2">
+                <div class="flex flex-col">
+                    <span class="text-[9px] text-slate-500 font-bold uppercase">Your Wallet</span>
+                    <span id="wallet-display" class="text-2xl font-black italic">$1000</span>
+                </div>
+                <div id="guide-text" class="text-[9px] text-yellow-500/80 font-bold italic uppercase"></div>
+            </div>
+        </div>
+
+        <div id="controls" class="grid grid-cols-3 gap-2 mb-2">
             <button onclick="handleAction('fold')" class="bg-slate-900 border border-slate-800 py-4 rounded-xl text-xs font-bold uppercase">Fold</button>
-            <button id="call-btn" onclick="handleAction('call')" class="bg-blue-600 py-4 rounded-xl text-xs font-black uppercase shadow-lg shadow-blue-900/40">Call</button>
-            <button id="raise-btn" onclick="handleAction('raise')" class="bg-slate-100 text-slate-900 py-4 rounded-xl text-xs font-black uppercase shadow-lg shadow-slate-400/20">Raise</button>
+            <button id="call-btn" onclick="handleAction('call')" class="bg-blue-600 py-4 rounded-xl text-xs font-black uppercase">Call</button>
+            <button id="raise-btn" onclick="handleAction('raise')" class="bg-white text-black py-4 rounded-xl text-xs font-black uppercase">Raise</button>
         </div>
 
-        <div id="rank-modal" class="hidden absolute inset-x-4 top-20 bottom-32 z-[90] bg-slate-900/95 border border-slate-700 rounded-3xl p-4 shadow-2xl backdrop-blur-md">
-            <div class="flex justify-between items-center mb-4 px-2">
-                <h3 class="font-black italic text-yellow-500">HAND RANKS</h3>
-                <button onclick="toggleRankTable()" class="text-slate-400 text-xl font-bold">&times;</button>
-            </div>
-            <div class="flex flex-col gap-1 overflow-y-auto h-[90%]">
-                <div id="rank-9" class="rank-item"><span>1. Royal Flush</span><span>👑</span></div>
-                <div id="rank-8" class="rank-item"><span>2. Straight Flush</span><span>🔥</span></div>
-                <div id="rank-7" class="rank-item"><span>3. 4 of a Kind</span><span>⚡</span></div>
-                <div id="rank-6" class="rank-item"><span>4. Full House</span><span>💎</span></div>
-                <div id="rank-5" class="rank-item"><span>5. Flush</span><span>🌊</span></div>
-                <div id="rank-4" class="rank-item"><span>6. Straight</span><span>🛤️</span></div>
-                <div id="rank-3" class="rank-item"><span>7. 3 of a Kind</span><span>✨</span></div>
-                <div id="rank-2" class="rank-item"><span>8. 2 Pair</span><span>✌️</span></div>
-                <div id="rank-1" class="rank-item"><span>9. 1 Pair</span><span>🃏</span></div>
-                <div id="rank-0" class="rank-item"><span>10. High Card</span><span>💨</span></div>
-            </div>
-        </div>
-
-        <div id="result-overlay" class="hidden absolute inset-0 z-[100] bg-slate-950/90 flex flex-col items-center justify-center p-6 text-center">
-            <h2 id="win-text" class="text-6xl font-black italic mb-2 tracking-tighter uppercase">YOU WIN</h2>
-            <p id="win-detail" class="text-yellow-500 font-bold tracking-widest uppercase text-sm mb-10">PAIR</p>
-            <button onclick="nextRound()" class="w-64 bg-white text-slate-900 py-5 rounded-2xl font-black tracking-widest uppercase shadow-2xl active:scale-95 transition-transform">Next Hand</button>
+        <div id="result-overlay" class="hidden absolute inset-0 z-[110] bg-slate-950/95 flex flex-col items-center justify-center p-6 text-center">
+            <h2 id="win-text" class="text-6xl font-black italic mb-2 uppercase tracking-tighter">YOU WIN</h2>
+            <p id="win-detail" class="text-yellow-500 font-bold tracking-widest uppercase text-sm mb-12">PAIR</p>
+            <button onclick="nextRound()" class="w-full max-w-xs bg-blue-600 text-white py-5 rounded-2xl font-black tracking-widest uppercase shadow-2xl">Next Hand</button>
         </div>
     </div>
 
@@ -106,11 +101,6 @@
             nextRound();
         }
 
-        function toggleRankTable() {
-            const modal = document.getElementById('rank-modal');
-            modal.classList.toggle('hidden');
-        }
-
         function nextRound() {
             document.getElementById('result-overlay').classList.add('hidden');
             document.getElementById('controls').classList.remove('hidden');
@@ -118,7 +108,7 @@
             deck = [];
             for(let s of SUITS) for(let v in VALS) deck.push({s, v});
             deck.sort(() => Math.random() - 0.5);
-            state = { pHand: [], aiHand: [], board: [], phase: gameMode === 'draw' ? 'draw' : 'preflop', drawCount: 0, pSwapped: false, selected: new Set(), aiBluff: Math.random() > 0.85, isThinking: false };
+            state = { pHand: [], aiHand: [], board: [], phase: gameMode === 'draw' ? 'draw' : 'preflop', drawCount: 0, pSwapped: false, selected: new Set(), isThinking: false };
             const count = (gameMode === 'texas') ? 2 : 5;
             for(let i=0; i<count; i++) { state.pHand.push(deck.pop()); state.aiHand.push(deck.pop()); }
             if(gameMode === 'texas') for(let i=0; i<5; i++) state.board.push(deck.pop());
@@ -129,21 +119,20 @@
             document.getElementById('wallet-display').innerText = `$${wallet}`;
             document.getElementById('ai-stack-display').innerText = `$${aiBank}`;
             document.getElementById('pot-display').innerText = `$${pot}`;
-            document.getElementById('status-label').innerText = state.phase;
+            document.getElementById('status-label').innerText = state.phase.toUpperCase();
 
             const drawLabel = document.getElementById('draw-count-display');
             if(gameMode === 'draw' && state.phase === 'draw') {
-                drawLabel.innerText = `Draw Chance: ${3 - state.drawCount}`;
-                drawLabel.style.display = 'block';
-            } else { drawLabel.style.display = 'none'; }
+                drawLabel.innerText = `DRAWS LEFT: ${3 - state.drawCount}`;
+            } else { drawLabel.innerText = ""; }
 
-            document.getElementById('ai-hand').innerHTML = state.aiHand.map(c => state.phase === 'showdown' ? renderCard(c, false, true) : `<div class="w-[54px] h-[78px] bg-slate-800 rounded border border-slate-700 flex items-center justify-center text-slate-700 text-xl font-black italic">?</div>`).join('');
+            document.getElementById('ai-hand').innerHTML = state.aiHand.map(c => state.phase === 'showdown' ? renderCard(c, false) : `<div class="w-[30px] h-[45px] bg-slate-800 rounded border border-slate-700 flex items-center justify-center text-slate-600 text-[10px] font-black italic">?</div>`).join('');
 
             const bArea = document.getElementById('board');
             bArea.innerHTML = '';
             if(gameMode === 'texas') {
                 let show = state.phase==='flop'?3 : (state.phase==='turn'?4 : (state.phase==='river'||state.phase==='showdown'?5 : 0));
-                for(let i=0; i<5; i++) bArea.innerHTML += (i < show) ? renderCard(state.board[i], false, true) : `<div class="w-[54px] h-[78px] bg-black/30 border border-white/5 rounded"></div>`;
+                for(let i=0; i<5; i++) bArea.innerHTML += (i < show) ? renderCard(state.board[i], false) : `<div class="w-[45px] h-[60px] bg-black/30 border border-white/5 rounded"></div>`;
             }
 
             const pArea = document.getElementById('player-hand');
@@ -153,7 +142,7 @@
                 el.innerHTML = renderCard(c, state.selected.has(i));
                 const card = el.firstChild;
                 card.onclick = () => {
-                    if(state.isThinking) return;
+                    if(state.isThinking || state.phase === 'showdown') return;
                     if(gameMode === 'draw' && state.phase === 'draw') {
                         state.selected.has(i) ? state.selected.delete(i) : state.selected.add(i);
                         updateUI();
@@ -167,7 +156,7 @@
             const evalP = evaluate(state.pHand, (gameMode==='texas' ? getVisBoard() : []));
             document.getElementById('hand-name').innerText = evalP.name;
 
-            // 役ハイライト
+            // ランク表ハイライト
             const currentRankIdx = Math.floor(evalP.score / 100);
             for(let i=0; i<=9; i++) {
                 const el = document.getElementById(`rank-${i}`);
@@ -179,7 +168,7 @@
             callBtn.innerText = (gameMode === 'draw' && state.phase === 'draw') ? (state.selected.size > 0 ? "Swap" : "Stay") : "Call";
         }
 
-        function renderCard(c, sel, small = false) {
+        function renderCard(c, sel) {
             const isRed = (c.s === '♥' || c.s === '♦');
             return `<div class="card ${sel?'selected':''}" style="color:${isRed?'#e11d48':'#0f172a'}">
                 <div class="text-[10px] mb-0.5 leading-none">${c.v}</div>
@@ -209,18 +198,35 @@
             let pBet = (type === 'raise') ? 100 : 20;
             wallet -= pBet; pot += pBet;
             updateUI();
+            
             state.isThinking = true;
             document.getElementById('main-table').classList.add('ai-thinking');
             
             setTimeout(() => {
                 const aiEval = evaluate(state.aiHand, (gameMode==='texas' ? getVisBoard() : []));
-                let decision = (type === 'raise' && (aiEval.score + (state.aiBluff?250:0)) < 200) ? 'fold' : 'call';
-                if(aiEval.score > 400) decision = 'raise';
+                
+                // AIの判断を大幅に改善（降りすぎ防止）
+                let decision = 'call';
+                const aiPower = aiEval.score + (Math.random() * 100); // 運要素追加
+                
+                if (type === 'raise') {
+                    // Raiseされてもワンペア以上、またはA/Kを持っていれば降りない
+                    const highCard = Math.max(...state.aiHand.map(c => VALS[c.v]));
+                    if (aiEval.score < 50 && highCard < 13 && Math.random() > 0.4) {
+                        decision = 'fold';
+                    } else if (aiEval.score >= 200) {
+                        decision = 'raise'; // 強い手ならさらにレイズ
+                    }
+                } else if (aiEval.score > 300) {
+                    decision = 'raise';
+                }
 
                 if(decision === 'fold') return showResult('YOU WIN', 'AI Folded');
+                
                 let aiBet = (decision === 'raise') ? 100 : pBet;
                 aiBank -= aiBet; pot += aiBet;
                 speakAI(decision === 'raise' ? "RAISE!" : "CALL");
+
                 state.isThinking = false;
                 document.getElementById('main-table').classList.remove('ai-thinking');
                 
@@ -238,7 +244,7 @@
             const counts = {};
             state.aiHand.forEach(c => counts[c.v] = (counts[c.v] || 0) + 1);
             state.aiHand = state.aiHand.map(c => (counts[c.v] > 1 || VALS[c.v] >= 11) ? c : deck.pop());
-            speakAI("カード交換中...");
+            speakAI("交換したよ...");
         }
 
         function showdown() {
